@@ -10,7 +10,7 @@ const CanvasComponent = dynamic(() => import("@/components/canvasComponent"), {
 });
 export default function Home() {
 
-  const [activeTool, setActiveTool] = useState("Draw")
+  const [activeTool, setActiveTool] = useState("Rectangle")
   return (
     <div>
       <Topbar activeTool={activeTool} setActiveTool={setActiveTool}/>

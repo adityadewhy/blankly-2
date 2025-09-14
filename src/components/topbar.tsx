@@ -71,7 +71,7 @@ export default function Topbar({activeTool,setActiveTool}:TopbarProps) {
 	}, []);
 
 	return (
-		<div className="flex justify-center bg-[#232329] w-max mx-auto rounded-md mt-3 p-2 pr-4 gap-4">
+		<div className="flex justify-center bg-[#232329] w-max mx-auto rounded-md mt-3 p-2 pr-4 gap-4 z-10 relative">
 			{starterTools.map((eachTool, i) => {
 				const Icon = eachTool.icon;
 				const index = eachTool.name === "More tools" ? 0 : i + 1; //to add the subscript to each icon so that users can type instead of clicking, cant have users typing two digits thats why only 0 for 10th index icon
