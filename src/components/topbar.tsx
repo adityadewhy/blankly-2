@@ -1,5 +1,5 @@
 "use client";
-import {useState, useEffect} from "react";
+import {useEffect} from "react";
 
 import {
 	Hand,
@@ -9,9 +9,9 @@ import {
 	RectangleHorizontal,
 	Type as TypingTool,
 	Pen,
+	Circle,
 	Image as ImagePickerTool,
 	Eraser,
-	ToolCase,
 } from "lucide-react";
 
 type Tool = {
@@ -27,9 +27,9 @@ const starterTools: Tool[] = [
 	{name: "Rectangle", icon: RectangleHorizontal},
 	{name: "Text", icon: TypingTool},
 	{name: "Draw", icon: Pen},
+	{name: "Circle", icon: Circle},
 	{name: "Insert image", icon: ImagePickerTool},
 	{name: "Eraser", icon: Eraser},
-	{name: "More tools", icon: ToolCase},
 ];
 
 interface TopbarProps {
@@ -57,7 +57,7 @@ export default function Topbar({activeTool,setActiveTool}:TopbarProps) {
 
 				// Find the tool with that index
 				const tool = starterTools.find((eachTool, i) =>
-					eachTool.name === "More tools" ? num === 0 : num === i + 1
+					eachTool.name === "Eraser" ? num === 0 : num === i + 1
 				);
 
 				if (tool) {
@@ -74,7 +74,7 @@ export default function Topbar({activeTool,setActiveTool}:TopbarProps) {
 		<div className="flex justify-center bg-[#232329] w-max mx-auto rounded-md mt-3 p-2 pr-4 gap-4 z-10 relative">
 			{starterTools.map((eachTool, i) => {
 				const Icon = eachTool.icon;
-				const index = eachTool.name === "More tools" ? 0 : i + 1; //to add the subscript to each icon so that users can type instead of clicking, cant have users typing two digits thats why only 0 for 10th index icon
+				const index = eachTool.name === "Eraser" ? 0 : i + 1; //to add the subscript to each icon so that users can type instead of clicking, cant have users typing two digits thats why only 0 for 10th index icon
 				const isActive = activeTool === eachTool.name;
 
 				return (

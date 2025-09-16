@@ -1,7 +1,16 @@
 "use client";
 
 import React, {useState, useRef, useEffect} from "react";
-import {Stage, Layer, Line, Rect, Arrow, Text, Transformer} from "react-konva";
+import {
+	Stage,
+	Layer,
+	Line,
+	Rect,
+	Arrow,
+	Text,
+	Ellipse,
+	Transformer,
+} from "react-konva";
 import Konva from "konva";
 
 interface canvasComponentProps {
@@ -207,15 +216,57 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 			},
 		},
 
-		// ... image, eraser, toolcase
+		Circle: {
+			onMouseDown: (e: any) => {
+				const stage = e.target.getStage();
+				const pointer = stage.getRelativePointerPosition();
+				if (!pointer) return;
+
+				setPreviewShape({
+					type: "ellipse",
+					id: "preview",
+					startX: pointer.x,
+					startY: pointer.y,
+					x: pointer.x,
+					y: pointer.y,
+					radiusX: 0,
+					radiusY: 0,
+					...defaultShapeConfig,
+				});
+			},
+			onMouseMove: (e: any) => {
+				if (!previewShape) return;
+				const stage = e.target.getStage();
+				const pointer = stage.getRelativePointerPosition();
+				if (!pointer) return;
+
+				const {startX, startY} = previewShape;
+				const width = Math.abs(pointer.x - startX);
+				const height = Math.abs(pointer.y - startY);
+
+				setPreviewShape({
+					...previewShape,
+					x: (startX + pointer.x) / 2,
+					y: (startY + pointer.y) / 2,
+					radiusX: width / 2,
+					radiusY: height / 2,
+				});
+			},
+			onMouseUp: () => {
+				if (!previewShape) return;
+				const {startX, startY, ...finalShape} = previewShape;
+				setShapes((prev) => [
+					...prev,
+					{...finalShape, id: Date.now().toString()},
+				]);
+				setPreviewShape(null);
+			},
+		},
+
+		// ... image, eraser
 	};
 
 	const handleMouseDown = (e: any) => {
-		// if (e.target !== e.target.getStage() && activeTool !== "Selection") {
-		// 	return;
-		// }
-		// toolHandlers[activeTool]?.onMouseDown?.(e);
-
 		const clickedOnEmpty = e.target === e.target.getStage();
 		if (clickedOnEmpty) {
 			if (activeTool === "Selection") {
@@ -296,7 +347,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 		}
 	}, [inputPosition.visible]);
 
-	const drawingTools = ["Arrow", "Line", "Rectangle", "Draw"];
+	const drawingTools = ["Arrow", "Line", "Rectangle", "Draw", "Circle"];
 
 	const getCursor = () => {
 		if (activeTool === "Text") {
@@ -434,6 +485,8 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 						switch (shape.type) {
 							case "rect":
 								return <Rect {...shapeProps} />;
+							case "ellipse":
+								return <Ellipse {...shapeProps} />;
 							case "line":
 								return (
 									<Line
@@ -470,6 +523,9 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 					{previewShape && previewShape.type === "arrow" && (
 						<Arrow {...previewShape} dash={[4, 4]} />
 					)}
+					{previewShape && previewShape.type === "ellipse" && (
+						<Ellipse {...previewShape} dash={[4, 4]} />
+					)}
 
 					<Transformer ref={transformerRef} />
 				</Layer>
@@ -479,8 +535,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 }
 
 //todos
-// p-1 replace more tools by circle
-// p-2 when activeTool==selection and hovering over the lines of rect or line or text or basically anything, i should automatically get the 4head cursor and clicking with that cursor lets you transform with the corner resizer and everything
+// p-1 when activeTool==selection and hovering over the lines of rect or line or text or basically anything, i should automatically get the 4head cursor and clicking with that cursor lets you transform with the corner resizer and everything
 // plus when selection is activeTool then i should be able to selected multiple shapes, just double click and make a rect with selection tool and select all shapes within that rect and transform that whole group at once.
 // onDragEnd and onDragMove events warnings....
 // konva dragDistance -> drag gets enabled  only when pointer moves by x amount
