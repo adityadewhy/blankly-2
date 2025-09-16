@@ -10,6 +10,7 @@ import {
 	Text,
 	Ellipse,
 	Transformer,
+	Image,
 } from "react-konva";
 import Konva from "konva";
 
@@ -440,6 +441,23 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 						const shapeProps = {
 							...shape,
 							key: shape.id,
+							fillEnabled: false,
+							hitStrokeWidth: 10,
+
+							onMouseEnter: (e: any) => {
+								if (activeTool === "Selection") {
+									const stage = e.target.getStage();
+									if (stage) {
+										stage.container().style.cursor = "move";
+									}
+								}
+							},
+							onMouseLeave: (e: any) => {
+								const stage = e.target.getStage();
+								if (stage) {
+									stage.container().style.cursor = "default";
+								}
+							},
 							onClick: (e: any) => {
 								if (activeTool === "Selection") {
 									setSelectedId(shape.id);
@@ -451,7 +469,8 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 									setSelectedId(shape.id);
 								}
 							},
-							draggable: activeTool === "Selection",
+
+							draggable: activeTool === "Selection" && selectedId === shape.id,
 							onDragEnd: (e: any) => {
 								// IMPORTANT: Update state on drag/transform
 								const newShapes = shapes.slice();
@@ -535,8 +554,9 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 }
 
 //todos
-// p-1 when activeTool==selection and hovering over the lines of rect or line or text or basically anything, i should automatically get the 4head cursor and clicking with that cursor lets you transform with the corner resizer and everything
-// plus when selection is activeTool then i should be able to selected multiple shapes, just double click and make a rect with selection tool and select all shapes within that rect and transform that whole group at once.
+//p-1 image addition
+// p-2 being able to drag a shape which is in front of another shape(partally) when it is being tansformed. right now drag only works from the border. 
+// also when selection is activeTool then i should be able to selected multiple shapes, just double click and make a rect with selection tool and select all shapes within that rect and transform that whole group at once.
 // onDragEnd and onDragMove events warnings....
 // konva dragDistance -> drag gets enabled  only when pointer moves by x amount
 // handle on dragEnd and onDragMove
