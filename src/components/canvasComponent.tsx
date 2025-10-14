@@ -421,6 +421,9 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 					minWidth: "auto",
 					fieldSizing: "content",
 					overflow: "hidden",
+					lineHeight: `${textFontSize}px`,
+					resize:"none"
+
 				}}
 			/>
 			<Stage

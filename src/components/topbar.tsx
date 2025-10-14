@@ -1,5 +1,5 @@
 "use client";
-import {useEffect} from "react";
+import {useEffect, useRef} from "react";
 
 import {
 	Hand,
@@ -33,13 +33,20 @@ const starterTools: Tool[] = [
 ];
 
 interface TopbarProps {
-    activeTool : string,
-    setActiveTool : (tool:string) => void
+	activeTool: string;
+	setActiveTool: (tool: string) => void;
+	//onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export default function Topbar({activeTool,setActiveTool}:TopbarProps) {
+export default function Topbar({
+	activeTool,
+	setActiveTool,
+}: //onImageUpload,
+TopbarProps) {
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
+
 		const handleKeyDown = (e: KeyboardEvent) => {
 			// Ignore if typing in input, textarea, or editable content
 			const target = e.target as HTMLElement;
@@ -72,6 +79,7 @@ export default function Topbar({activeTool,setActiveTool}:TopbarProps) {
 
 	return (
 		<div className="flex justify-center bg-[#232329] w-max mx-auto rounded-md mt-3 p-2 pr-4 gap-4 z-10 relative">
+			
 			{starterTools.map((eachTool, i) => {
 				const Icon = eachTool.icon;
 				const index = eachTool.name === "Eraser" ? 0 : i + 1; //to add the subscript to each icon so that users can type instead of clicking, cant have users typing two digits thats why only 0 for 10th index icon
@@ -82,7 +90,12 @@ export default function Topbar({activeTool,setActiveTool}:TopbarProps) {
 						key={eachTool.name}
 						title={eachTool.name} //gives description on hover
 						onClick={() => {
-							setActiveTool(eachTool.name);
+							// If it's the image tool, trigger the file input
+							if (eachTool.name === "Insert image") {
+								fileInputRef.current?.click();
+							} else {
+								setActiveTool(eachTool.name);
+							}
 						}}
 						className={`rounded-md relative flex p-1.5 transition-colors ${
 							isActive
