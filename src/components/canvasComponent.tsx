@@ -422,8 +422,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 					fieldSizing: "content",
 					overflow: "hidden",
 					lineHeight: `${textFontSize}px`,
-					resize:"none"
-
+					resize: "none",
 				}}
 			/>
 			<Stage
@@ -441,9 +440,10 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 			>
 				<Layer>
 					{shapes.map((shape) => {
+						const {id, ...rest} = shape;
 						const shapeProps = {
-							...shape,
-							key: shape.id,
+							id,
+							...rest,
 							fillEnabled: false,
 							hitStrokeWidth: 10,
 
@@ -506,12 +506,13 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 
 						switch (shape.type) {
 							case "rect":
-								return <Rect {...shapeProps} />;
+								return <Rect key={id} {...shapeProps} />;
 							case "ellipse":
-								return <Ellipse {...shapeProps} />;
+								return <Ellipse key={id} {...shapeProps} />;
 							case "line":
 								return (
 									<Line
+										key={id}
 										{...shapeProps}
 										tension={0}
 										lineCap="round"
@@ -519,7 +520,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 									/>
 								);
 							case "arrow":
-								return <Arrow {...shapeProps} />;
+								return <Arrow key={id} {...shapeProps} />;
 							default:
 								return null;
 						}
@@ -558,7 +559,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 
 //todos
 //p-1 image addition
-// p-2 being able to drag a shape which is in front of another shape(partally) when it is being tansformed. right now drag only works from the border. 
+// p-2 being able to drag a shape which is in front of another shape(partally) when it is being tansformed. right now drag only works from the border.
 // also when selection is activeTool then i should be able to selected multiple shapes, just double click and make a rect with selection tool and select all shapes within that rect and transform that whole group at once.
 // onDragEnd and onDragMove events warnings....
 // konva dragDistance -> drag gets enabled  only when pointer moves by x amount
