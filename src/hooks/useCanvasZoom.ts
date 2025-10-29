@@ -82,10 +82,17 @@ export function useCanvasZoom({
 	};
 
 	const handleDragEnd = (e: any) => {
-		setStagePos({
-			x: e.target.x(),
-			y: e.target.y(),
-		});
+		// Only update stage position if the drag target is the Stage itself, not a shape
+		const target = e.target;
+		const stage = e.target.getStage();
+
+		// Only update if the target is the actual Stage
+		if (target === stage) {
+			setStagePos({
+				x: e.target.x(),
+				y: e.target.y(),
+			});
+		}
 	};
 
 	const getTransformedPosition = (x: number, y: number) => {

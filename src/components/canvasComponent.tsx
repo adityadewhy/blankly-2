@@ -436,7 +436,12 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				onMouseMove={handleMouseMove}
 				onMouseUp={handleMouseUp}
 				draggable={activeTool === "Hand or panning tool"}
-				onDragEnd={handleDragEnd}
+				onDragEnd={(e) => {
+					// Only handle drag end if we're actually using the Hand tool
+					if (activeTool === "Hand or panning tool") {
+						handleDragEnd(e);
+					}
+				}}
 			>
 				<Layer>
 					{shapes.map((shape) => {
@@ -463,17 +468,27 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 							},
 							onClick: (e: any) => {
 								if (activeTool === "Selection") {
+									e.cancelBubble = true;
 									setSelectedId(shape.id);
 								}
 							},
 							onTap: (e: any) => {
 								if (activeTool === "Selection") {
+									e.cancelBubble = true;
 									setSelectedId(shape.id);
 								}
 							},
 
 							draggable: activeTool === "Selection" && selectedId === shape.id,
+							onDragStart: (e: any) => {
+								e.cancelBubble = true;
+							},
+							onDragMove: (e: any) => {
+								e.cancelBubble = true;
+							},
 							onDragEnd: (e: any) => {
+								e.cancelBubble = true;
+
 								const newShapes = shapes.slice();
 								const index = newShapes.findIndex((s) => s.id === shape.id);
 								newShapes[index] = {
@@ -555,7 +570,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 }
 
 //todos
-//p-0.9 remove redundant zoom logic in two files
+//p0.9 select and move not working properly, fix them
 //p-1 image addition
 // p-2 being able to drag a shape which is in front of another shape(partally) when it is being tansformed. right now drag only works from the border.
 // also when selection is activeTool then i should be able to selected multiple shapes, just double click and make a rect with selection tool and select all shapes within that rect and transform that whole group at once.
