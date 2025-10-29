@@ -13,6 +13,7 @@ import {
 	Image,
 } from "react-konva";
 import Konva from "konva";
+import {useCanvasZoom} from "@/hooks/useCanvasZoom";
 
 interface canvasComponentProps {
 	activeTool: string;
@@ -45,6 +46,15 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const transformerRef = useRef<Konva.Transformer>(null);
+
+	// Use the zoom hook - THIS IS WHERE IT'S USED
+	const {
+		stageScale,
+		stagePos,
+		handleWheel,
+		handleDragEnd,
+		getTransformedPosition,
+	} = useCanvasZoom({stageRef});
 
 	const defaultShapeConfig = {
 		fill: "transparent",
@@ -97,7 +107,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 			},
 		},
 		Line: {
-			// Corresponds to "Minus" icon
 			onMouseDown: (e: any) => {
 				const stage = e.target.getStage();
 				const pointer = stage.getRelativePointerPosition();
@@ -131,7 +140,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				setPreviewShape(null);
 			},
 		},
-
 		Rectangle: {
 			onMouseDown: (e: any) => {
 				const stage = e.target.getStage();
@@ -139,7 +147,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				if (!pointer) return;
 
 				const newRect = {
-					type: "rect", // Add a type property!
+					type: "rect",
 					id: "preview",
 					x: pointer.x,
 					y: pointer.y,
@@ -155,7 +163,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				const pointer = stage.getRelativePointerPosition();
 				if (!pointer) return;
 
-				// Use original x/y from the previewShape
 				const startX = previewShape.startX ?? previewShape.x;
 				const startY = previewShape.startY ?? previewShape.y;
 
@@ -165,14 +172,12 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 					y: Math.min(startY, pointer.y),
 					width: Math.abs(pointer.x - startX),
 					height: Math.abs(pointer.y - startY),
-					// Store the original start position if it doesn't exist
 					startX: startX,
 					startY: startY,
 				});
 			},
 			onMouseUp: (e: any) => {
 				if (!previewShape) return;
-				// Remove the temporary startX/startY properties
 				const {startX, startY, ...finalShape} = previewShape;
 				setShapes((prev) => [
 					...prev,
@@ -181,16 +186,14 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				setPreviewShape(null);
 			},
 		},
-
 		Draw: {
-			// Corresponds to "Pen" icon
 			onMouseDown: (e: any) => {
 				const stage = e.target.getStage();
 				const pointer = stage.getRelativePointerPosition();
 				if (!pointer) return;
 
 				setPreviewShape({
-					type: "line", // Freehand drawing is just a line with many points
+					type: "line",
 					id: "preview",
 					points: [pointer.x, pointer.y],
 					...defaultShapeConfig,
@@ -216,7 +219,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				setPreviewShape(null);
 			},
 		},
-
 		Circle: {
 			onMouseDown: (e: any) => {
 				const stage = e.target.getStage();
@@ -263,19 +265,16 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				setPreviewShape(null);
 			},
 		},
-
-		// ... image, eraser
 	};
 
 	const handleMouseDown = (e: any) => {
 		const clickedOnEmpty = e.target === e.target.getStage();
 		if (clickedOnEmpty) {
 			if (activeTool === "Selection") {
-				setSelectedId(null); // Deselect
+				setSelectedId(null);
 			}
 		}
 
-		// 2. Pass to drawing tool handlers if a drawing tool is active
 		if (drawingTools.includes(activeTool)) {
 			toolHandlers[activeTool]?.onMouseDown?.(e);
 		}
@@ -291,7 +290,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 
 	const handleInputText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
 		setInputText(e.target.value);
-		inputPosition;
 	};
 
 	const finishTextEditing = () => {
@@ -314,22 +312,18 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 		setInputPosition({...inputPosition, visible: false});
 	};
 
-	// 4. Handles 'Enter' key to submit text
 	const handleTextKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === "Enter" && !e.shiftKey) {
-			e.preventDefault(); // Prevent new line on simple Enter
+			e.preventDefault();
 			finishTextEditing();
 		}
 	};
 
-	// 5. Handles clicking away from the input to submit text
 	const handleTextBlur = () => {
 		finishTextEditing();
 	};
 
-	// 6. Replaces the old text click handler. This now only shows and positions the input.
 	const handleStageClickForText = (e: any) => {
-		// Only trigger on clicks to the stage itself, not existing shapes
 		if (e.target !== e.target.getStage()) {
 			return;
 		}
@@ -338,10 +332,8 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 		if (!pointer) return;
 
 		setInputPosition({x: pointer.x, y: pointer.y, visible: true});
-		console.log("input pos", inputPosition);
 	};
 
-	// 7. useEffect to focus the input when it becomes visible
 	useEffect(() => {
 		if (inputPosition.visible) {
 			textInputRef.current?.focus();
@@ -374,8 +366,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 		const stage = transformer.getStage();
 
 		if (selectedId) {
-			// Find the node by its ID
-			const selectedNode = stage?.findOne("#" + selectedId); // Konva uses '#' for ID selector
+			const selectedNode = stage?.findOne("#" + selectedId);
 
 			if (selectedNode) {
 				transformer.nodes([selectedNode]);
@@ -387,7 +378,10 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 		}
 
 		transformer.getLayer()?.batchDraw();
-	}, [selectedId]); // Re-run this effect whenever selectedId changes
+	}, [selectedId]);
+
+	// Get text input position accounting for zoom/pan - HOOK USAGE #1
+	const textInputPos = getTransformedPosition(inputPosition.x, inputPosition.y);
 
 	return (
 		<div
@@ -407,10 +401,10 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				style={{
 					display: inputPosition.visible ? "block" : "none",
 					position: "absolute",
-					top: `${inputPosition.y + (stageRef.current?.y() ?? 0)}px`,
-					left: `${inputPosition.x + (stageRef.current?.x() ?? 0)}px`,
+					top: `${textInputPos.top}px`,
+					left: `${textInputPos.left}px`,
 					zIndex: 10,
-					fontSize: `${textFontSize}px`,
+					fontSize: `${textFontSize * stageScale}px`,
 					fontFamily: textFontFamily,
 					color: textColor,
 					background: "transparent",
@@ -421,7 +415,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 					minWidth: "auto",
 					fieldSizing: "content",
 					overflow: "hidden",
-					lineHeight: `${textFontSize}px`,
+					lineHeight: `${textFontSize * stageScale}px`,
 					resize: "none",
 				}}
 			/>
@@ -429,6 +423,11 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				ref={stageRef}
 				width={window.innerWidth}
 				height={window.innerHeight}
+				scaleX={stageScale}
+				scaleY={stageScale}
+				x={stagePos.x}
+				y={stagePos.y}
+				onWheel={handleWheel}
 				onMouseDown={
 					activeTool === "Text" ? handleStageClickForText : handleMouseDown
 				}
@@ -437,6 +436,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 				onMouseMove={handleMouseMove}
 				onMouseUp={handleMouseUp}
 				draggable={activeTool === "Hand or panning tool"}
+				onDragEnd={handleDragEnd}
 			>
 				<Layer>
 					{shapes.map((shape) => {
@@ -467,7 +467,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 								}
 							},
 							onTap: (e: any) => {
-								// For mobile
 								if (activeTool === "Selection") {
 									setSelectedId(shape.id);
 								}
@@ -475,7 +474,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 
 							draggable: activeTool === "Selection" && selectedId === shape.id,
 							onDragEnd: (e: any) => {
-								// IMPORTANT: Update state on drag/transform
 								const newShapes = shapes.slice();
 								const index = newShapes.findIndex((s) => s.id === shape.id);
 								newShapes[index] = {
@@ -486,7 +484,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 								setShapes(newShapes);
 							},
 							onTransformEnd: (e: any) => {
-								// IMPORTANT: Update state on transform
 								const node = e.target;
 								const newShapes = shapes.slice();
 								const index = newShapes.findIndex((s) => s.id === shape.id);
@@ -499,7 +496,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 									rotation: node.rotation(),
 								};
 								setShapes(newShapes);
-								node.scaleX(1); // Reset scale after transform
+								node.scaleX(1);
 								node.scaleY(1);
 							},
 						};
@@ -558,6 +555,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 }
 
 //todos
+//p-0.9 remove redundant zoom logic in two files
 //p-1 image addition
 // p-2 being able to drag a shape which is in front of another shape(partally) when it is being tansformed. right now drag only works from the border.
 // also when selection is activeTool then i should be able to selected multiple shapes, just double click and make a rect with selection tool and select all shapes within that rect and transform that whole group at once.

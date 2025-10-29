@@ -78,7 +78,7 @@ TopbarProps) {
 	}, []);
 
 	return (
-		<div className="flex justify-center bg-[#232329] w-max mx-auto rounded-md mt-3 p-2 pr-4 gap-4 z-10 relative">
+		<div className="flex justify-center bg-[#232329] w-max mx-auto rounded-md mt-3 p-2 pr-4 gap-4">
 			
 			{starterTools.map((eachTool, i) => {
 				const Icon = eachTool.icon;
