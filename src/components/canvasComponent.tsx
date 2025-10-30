@@ -505,17 +505,43 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 								const node = e.target;
 								const newShapes = shapes.slice();
 								const index = newShapes.findIndex((s) => s.id === shape.id);
-								newShapes[index] = {
-									...newShapes[index],
-									x: node.x(),
-									y: node.y(),
-									width: node.width() * node.scaleX(),
-									height: node.height() * node.scaleY(),
-									rotation: node.rotation(),
-								};
+								// Handle lines and arrows differently
+								if (shape.type === "line" || shape.type === "arrow") {
+									const scaleX = node.scaleX();
+									const scaleY = node.scaleY();
+									const points = node.points();
+
+									// Scale the points
+									const newPoints = points.map((point: number, idx: number) => {
+										return idx % 2 === 0 ? point * scaleX : point * scaleY;
+									});
+
+									newShapes[index] = {
+										...newShapes[index],
+										x: node.x(),
+										y: node.y(),
+										points: newPoints,
+										rotation: node.rotation(),
+									};
+
+									// Reset scale
+									node.scaleX(1);
+									node.scaleY(1);
+								} else {
+									// Handle rect and ellipse normally
+									newShapes[index] = {
+										...newShapes[index],
+										x: node.x(),
+										y: node.y(),
+										width: node.width() * node.scaleX(),
+										height: node.height() * node.scaleY(),
+										rotation: node.rotation(),
+									};
+									node.scaleX(1);
+									node.scaleY(1);
+								}
+
 								setShapes(newShapes);
-								node.scaleX(1);
-								node.scaleY(1);
 							},
 						};
 
@@ -641,10 +667,4 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 }
 
 //todos
-//p-0.9 move text
 //p-1 image addition
-// p-2 being able to drag a shape which is in front of another shape(partally) when it is being tansformed. right now drag only works from the border.
-// also when selection is activeTool then i should be able to selected multiple shapes, just double click and make a rect with selection tool and select all shapes within that rect and transform that whole group at once.
-// onDragEnd and onDragMove events warnings....
-// konva dragDistance -> drag gets enabled  only when pointer moves by x amount
-// we can use Touch events: touchstart, touchmove, touchend, tap, dbltap. for mobile support
