@@ -463,7 +463,7 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 							onMouseLeave: (e: any) => {
 								const stage = e.target.getStage();
 								if (stage) {
-									stage.container().style.cursor = "default";
+									stage.container().style.cursor = getCursor();
 								}
 							},
 							onClick: (e: any) => {
@@ -570,13 +570,11 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 }
 
 //todos
-//p0.9 select and move not working properly, fix them
+//p-0.8 cursor not switching apt
+//p-0.9 move text
 //p-1 image addition
 // p-2 being able to drag a shape which is in front of another shape(partally) when it is being tansformed. right now drag only works from the border.
 // also when selection is activeTool then i should be able to selected multiple shapes, just double click and make a rect with selection tool and select all shapes within that rect and transform that whole group at once.
 // onDragEnd and onDragMove events warnings....
 // konva dragDistance -> drag gets enabled  only when pointer moves by x amount
-// handle on dragEnd and onDragMove
-// dynamic sizing works for now
-//try transform - transform does nothing just shows resize handles
 // we can use Touch events: touchstart, touchmove, touchend, tap, dbltap. for mobile support
