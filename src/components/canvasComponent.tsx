@@ -28,6 +28,9 @@ interface TextObject {
 	fontSize: number;
 	fontFamily: string;
 	fill: string;
+	scaleX?: number;
+	scaleY?: number;
+	rotation?: number;
 }
 
 export default function CanvasComponent({activeTool}: canvasComponentProps) {
@@ -540,12 +543,80 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 					{textArray.map((eachTextItem) => (
 						<Text
 							key={eachTextItem.id}
+							id={eachTextItem.id}
 							x={eachTextItem.x}
 							y={eachTextItem.y}
 							text={eachTextItem.text}
 							fontSize={eachTextItem.fontSize}
 							fontFamily={eachTextItem.fontFamily}
 							fill={eachTextItem.fill}
+							scaleX={eachTextItem.scaleX || 1}
+							scaleY={eachTextItem.scaleY || 1}
+							rotation={eachTextItem.rotation || 0}
+							draggable={
+								activeTool === "Selection" && selectedId === eachTextItem.id
+							}
+							onMouseEnter={(e: any) => {
+								if (activeTool === "Selection") {
+									const stage = e.target.getStage();
+									if (stage) {
+										stage.container().style.cursor = "move";
+									}
+								}
+							}}
+							onMouseLeave={(e: any) => {
+								const stage = e.target.getStage();
+								if (stage) {
+									stage.container().style.cursor = getCursor();
+								}
+							}}
+							onClick={(e: any) => {
+								if (activeTool === "Selection") {
+									e.cancelBubble = true;
+									setSelectedId(eachTextItem.id);
+								}
+							}}
+							onTap={(e: any) => {
+								if (activeTool === "Selection") {
+									e.cancelBubble = true;
+									setSelectedId(eachTextItem.id);
+								}
+							}}
+							onDragStart={(e: any) => {
+								e.cancelBubble = true;
+							}}
+							onDragMove={(e: any) => {
+								e.cancelBubble = true;
+							}}
+							onDragEnd={(e: any) => {
+								e.cancelBubble = true;
+								const newTextArray = textArray.slice();
+								const index = newTextArray.findIndex(
+									(t) => t.id === eachTextItem.id
+								);
+								newTextArray[index] = {
+									...newTextArray[index],
+									x: e.target.x(),
+									y: e.target.y(),
+								};
+								setTextArray(newTextArray);
+							}}
+							onTransformEnd={(e: any) => {
+								const node = e.target;
+								const newTextArray = textArray.slice();
+								const index = newTextArray.findIndex(
+									(t) => t.id === eachTextItem.id
+								);
+								newTextArray[index] = {
+									...newTextArray[index],
+									x: node.x(),
+									y: node.y(),
+									scaleX: node.scaleX(),
+									scaleY: node.scaleY(),
+									rotation: node.rotation(),
+								};
+								setTextArray(newTextArray);
+							}}
 						/>
 					))}
 
@@ -570,7 +641,6 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 }
 
 //todos
-//p-0.8 cursor not switching apt
 //p-0.9 move text
 //p-1 image addition
 // p-2 being able to drag a shape which is in front of another shape(partally) when it is being tansformed. right now drag only works from the border.
