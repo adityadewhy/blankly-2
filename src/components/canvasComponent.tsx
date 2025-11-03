@@ -15,8 +15,15 @@ import {
 import Konva from "konva";
 import {useCanvasZoom} from "@/hooks/useCanvasZoom";
 
+interface UploadedImage {
+	id: string;
+	src: string;
+	name: string;
+}
+
 interface canvasComponentProps {
 	activeTool: string;
+	images: UploadedImage[];
 }
 
 interface TextObject {
@@ -33,7 +40,10 @@ interface TextObject {
 	rotation?: number;
 }
 
-export default function CanvasComponent({activeTool}: canvasComponentProps) {
+export default function CanvasComponent({
+	activeTool,
+	images,
+}: canvasComponentProps) {
 	const [shapes, setShapes] = useState<any[]>([]);
 	const [previewShape, setPreviewShape] = useState<any | null>(null);
 	const [inputText, setInputText] = useState<string>("");
@@ -43,14 +53,14 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 		y: 0,
 		visible: false,
 	});
+	const [konvaImages, setKonvaImages] = useState<any[]>([]);
 
 	const textInputRef = useRef<HTMLTextAreaElement>(null);
-	const stageRef = useRef<Konva.Stage>(null);
+	const stageRef = useRef<Konva.Stage | null>(null);
 
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const transformerRef = useRef<Konva.Transformer>(null);
 
-	// Use the zoom hook - THIS IS WHERE IT'S USED
 	const {
 		stageScale,
 		stagePos,
@@ -386,6 +396,60 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 	// Get text input position accounting for zoom/pan - HOOK USAGE #1
 	const textInputPos = getTransformedPosition(inputPosition.x, inputPosition.y);
 
+	useEffect(() => {
+		if (!images || images.length === 0) {
+			return;
+		}
+
+		const stage = stageRef.current;
+		if (!stage) {
+			return;
+		}
+		const stageWidth = stage.width();
+		const stageHeight = stage.height();
+
+		const newImages = images.map((eachImage) => {
+			const eachImageObj = new window.Image(); // kind of just creates a dom image element
+			eachImageObj.src = eachImage.src;
+
+			return new Promise((resolve) => {
+				eachImageObj.onload = () => {
+					const aspect = eachImageObj.width / eachImageObj.height;
+					let displayWidth = eachImageObj.width;
+					let displayHeight = eachImageObj.height;
+
+					const maxWidth = stageWidth * 0.5;
+					const maxHeight = stageHeight * 0.5;
+
+					if (displayWidth > maxWidth) {
+						displayWidth = maxWidth;
+						displayHeight = maxWidth / aspect;
+					}
+					if (displayHeight > maxHeight) {
+						displayHeight = maxHeight;
+						displayWidth = maxHeight * aspect;
+					}
+
+					resolve({
+						id: eachImage.id,
+						name: eachImage.name,
+						image: eachImageObj,
+						x: stageWidth / 2 - displayWidth / 2,
+						y: stageHeight / 2 - displayHeight / 2,
+						width: displayWidth,
+						height: displayHeight,
+						draggable: true,
+						type: "image",
+					});
+				};
+			});
+		});
+
+		Promise.all(newImages).then((loadedImage) => {
+			setKonvaImages((prev) => [...prev, ...loadedImage]);
+		});
+	}, [images]);
+
 	return (
 		<div
 			className="border-4 border-white inset-0 z-0 fixed"
@@ -642,6 +706,52 @@ export default function CanvasComponent({activeTool}: canvasComponentProps) {
 									rotation: node.rotation(),
 								};
 								setTextArray(newTextArray);
+							}}
+						/>
+					))}
+					{konvaImages.map((eachImageObj) => (
+						<Image
+							key={eachImageObj.id}
+							id={eachImageObj.id}
+							image={eachImageObj.image}
+							x={eachImageObj.x}
+							y={eachImageObj.y}
+							width={eachImageObj.width}
+							height={eachImageObj.height}
+							draggable={activeTool === "Selection"}
+							onClick={(e) => {
+								if (activeTool == "Selection") {
+									e.cancelBubble = true;
+									setSelectedId(eachImageObj.id);
+								}
+							}}
+							onTap={(e) => {
+								if (activeTool === "Selection") {
+									e.cancelBubble = true;
+									setSelectedId(eachImageObj.id);
+								}
+							}}
+							onTransformEnd={(e) => {
+								const node = e.target;
+								const scaleX = node.scaleX();
+								const scaleY = node.scaleY();
+
+								setKonvaImages((prev) =>
+									prev.map((each) =>
+										each.id === eachImageObj.id
+											? {
+													...each,
+													x: node.x(),
+													y: node.y(),
+													width: node.width() * scaleX,
+													height: node.height() * scaleY,
+													rotation: node.rotation(),
+											  }
+											: each
+									)
+								);
+								node.scaleX(1);
+								node.scaleY(1);
 							}}
 						/>
 					))}

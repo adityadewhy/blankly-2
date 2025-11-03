@@ -35,18 +35,17 @@ const starterTools: Tool[] = [
 interface TopbarProps {
 	activeTool: string;
 	setActiveTool: (tool: string) => void;
-	//onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+	onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function Topbar({
 	activeTool,
 	setActiveTool,
-}: //onImageUpload,
-TopbarProps) {
+	onImageUpload,
+}: TopbarProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-
 		const handleKeyDown = (e: KeyboardEvent) => {
 			// Ignore if typing in input, textarea, or editable content
 			const target = e.target as HTMLElement;
@@ -68,7 +67,11 @@ TopbarProps) {
 				);
 
 				if (tool) {
-					setActiveTool(tool.name);
+					if (tool.name === "Insert image") {
+						fileInputRef.current?.click();
+					} else {
+						setActiveTool(tool.name);
+					}
 				}
 			}
 		};
@@ -79,7 +82,13 @@ TopbarProps) {
 
 	return (
 		<div className="flex justify-center bg-[#232329] w-max mx-auto rounded-md mt-3 p-2 pr-4 gap-4">
-			
+			<input
+				ref={fileInputRef}
+				type="file"
+				accept="image/*,.gif"
+				onChange={onImageUpload}
+				style={{display: "none"}}
+			/>
 			{starterTools.map((eachTool, i) => {
 				const Icon = eachTool.icon;
 				const index = eachTool.name === "Eraser" ? 0 : i + 1; //to add the subscript to each icon so that users can type instead of clicking, cant have users typing two digits thats why only 0 for 10th index icon
