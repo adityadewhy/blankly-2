@@ -79,6 +79,30 @@ export default function CanvasComponent({
 	const textFontSize = 24;
 	const textColor = "white";
 
+	const eraseItem = (itemid: string) => {
+		setShapes((prev) => {
+			return prev.filter((shape) => {
+				return shape.id !== itemid;
+			});
+		});
+
+		setTextArray((prev) => {
+			return prev.filter((text) => {
+				return text.id !== itemid;
+			});
+		});
+
+		setKonvaImages((prev) => {
+			return prev.filter((img) => {
+				return img.id !== itemid;
+			});
+		});
+
+		if (selectedId === itemid) {
+			setSelectedId(null);
+		}
+	};
+
 	const toolHandlers: {[key: string]: any} = {
 		Arrow: {
 			onMouseDown: (e: any) => {
@@ -365,10 +389,20 @@ export default function CanvasComponent({
 		if (drawingTools.includes(activeTool)) {
 			return "crosshair";
 		}
+		if (activeTool === "Eraser") {
+			return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21'/%3E%3Cpath d='M22 21H7'/%3E%3Cpath d='m5 11 9 9'/%3E%3C/svg%3E") 0 24, auto`;
+		}
+
 		return "default";
 	};
 
-	useEffect(() => console.log(activeTool), [activeTool]);
+	useEffect(() => {
+		const stage = stageRef.current;
+		if (!stage) {
+			return;
+		}
+		stage.container().style.cursor = getCursor();
+	}, [activeTool]);
 
 	useEffect(() => {
 		if (!transformerRef.current) {
@@ -393,7 +427,6 @@ export default function CanvasComponent({
 		transformer.getLayer()?.batchDraw();
 	}, [selectedId]);
 
-	// Get text input position accounting for zoom/pan - HOOK USAGE #1
 	const textInputPos = getTransformedPosition(inputPosition.x, inputPosition.y);
 
 	useEffect(() => {
@@ -525,6 +558,11 @@ export default function CanvasComponent({
 									if (stage) {
 										stage.container().style.cursor = "move";
 									}
+								} else if (activeTool === "Eraser") {
+									const stage = e.target.getStage();
+									if (stage) {
+										stage.container().style.cursor = "pointer";
+									}
 								}
 							},
 							onMouseLeave: (e: any) => {
@@ -537,12 +575,18 @@ export default function CanvasComponent({
 								if (activeTool === "Selection") {
 									e.cancelBubble = true;
 									setSelectedId(shape.id);
+								} else if (activeTool === "Eraser") {
+									e.cancelBubble = true;
+									eraseItem(shape.id);
 								}
 							},
 							onTap: (e: any) => {
 								if (activeTool === "Selection") {
 									e.cancelBubble = true;
 									setSelectedId(shape.id);
+								} else if (activeTool === "Eraser") {
+									e.cancelBubble = true;
+									eraseItem(shape.id);
 								}
 							},
 
@@ -652,6 +696,11 @@ export default function CanvasComponent({
 									if (stage) {
 										stage.container().style.cursor = "move";
 									}
+								} else if (activeTool === "Eraser") {
+									const stage = e.target.getStage();
+									if (stage) {
+										stage.container().style.cursor = "pointer";
+									}
 								}
 							}}
 							onMouseLeave={(e: any) => {
@@ -664,12 +713,18 @@ export default function CanvasComponent({
 								if (activeTool === "Selection") {
 									e.cancelBubble = true;
 									setSelectedId(eachTextItem.id);
+								} else if (activeTool === "Eraser") {
+									e.cancelBubble = true;
+									eraseItem(eachTextItem.id);
 								}
 							}}
 							onTap={(e: any) => {
 								if (activeTool === "Selection") {
 									e.cancelBubble = true;
 									setSelectedId(eachTextItem.id);
+								} else if (activeTool === "Eraser") {
+									e.cancelBubble = true;
+									eraseItem(eachTextItem.id);
 								}
 							}}
 							onDragStart={(e: any) => {
@@ -719,16 +774,41 @@ export default function CanvasComponent({
 							width={eachImageObj.width}
 							height={eachImageObj.height}
 							draggable={activeTool === "Selection"}
+							onMouseEnter={(e) => {
+								if (activeTool === "Selection") {
+									const stage = e.target.getStage();
+									if (stage) {
+										stage.container().style.cursor = "move";
+									}
+								} else if (activeTool === "Eraser") {
+									const stage = e.target.getStage();
+									if (stage) {
+										stage.container().style.cursor = "pointer";
+									}
+								}
+							}}
+							onMouseLeave={(e) => {
+								const stage = e.target.getStage();
+								if (stage) {
+									stage.container().style.cursor = getCursor();
+								}
+							}}
 							onClick={(e) => {
-								if (activeTool == "Selection") {
+								if (activeTool === "Selection") {
 									e.cancelBubble = true;
 									setSelectedId(eachImageObj.id);
+								} else if (activeTool === "Eraser") {
+									e.cancelBubble = true;
+									eraseItem(eachImageObj.id);
 								}
 							}}
 							onTap={(e) => {
 								if (activeTool === "Selection") {
 									e.cancelBubble = true;
 									setSelectedId(eachImageObj.id);
+								} else if (activeTool === "Eraser") {
+									e.cancelBubble = true;
+									eraseItem(eachImageObj.id);
 								}
 							}}
 							onTransformEnd={(e) => {
