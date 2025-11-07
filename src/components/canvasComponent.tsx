@@ -14,6 +14,7 @@ import {
 } from "react-konva";
 import Konva from "konva";
 import {useCanvasZoom} from "@/hooks/useCanvasZoom";
+import {saveCanvasState, loadCanvasState} from "@/utils/canvasStorage";
 
 interface UploadedImage {
 	id: string;
@@ -482,6 +483,70 @@ export default function CanvasComponent({
 			setKonvaImages((prev) => [...prev, ...loadedImage]);
 		});
 	}, [images]);
+
+	useEffect(() => {
+		const loadState = async () => {
+			const savedState = await loadCanvasState();
+			if (savedState) {
+				setShapes(savedState.shapes || []);
+				setTextArray(savedState.textArray || []);
+
+				if (savedState.konvaImages) {
+					const imagePromises = savedState.konvaImages.map((imgData) => {
+						return new Promise((resolve) => {
+							const imgEl = new window.Image();
+							imgEl.src = imgData.src;
+							imgEl.onload = () => {
+								resolve({
+									...imgData,
+									image: imgEl, // Add the live element back
+								});
+							};
+							// Handle cases where the image link might be broken
+							imgEl.onerror = () => {
+								console.error("Failed to load image:", imgData.src);
+								resolve(null);
+							};
+						});
+					});
+
+					// Wait for all images to load and filter out any broken ones
+					const loadedImages = (await Promise.all(imagePromises)).filter(
+						Boolean
+					);
+					setKonvaImages(loadedImages as any[]);
+				}
+			}
+		};
+		loadState();
+	}, []);
+
+	useEffect(() => {
+		const saveState = async () => {
+			// NEW: Convert images to a serializable format
+			const serializableImages = konvaImages.map((img) => ({
+				id: img.id,
+				name: img.name,
+				src: img.image.src, // <-- Save the src string
+				x: img.x,
+				y: img.y,
+				width: img.width,
+				height: img.height,
+				rotation: img.rotation, // <-- Make sure to save rotation
+			}));
+
+			await saveCanvasState({
+				shapes,
+				textArray,
+				konvaImages: serializableImages, // <-- Pass the serializable array
+				timestamp: Date.now(),
+			});
+		};
+
+		// Debounce to avoid saving too frequently
+		const timeoutId = setTimeout(saveState, 1000);
+		return () => clearTimeout(timeoutId);
+	}, [shapes, textArray, konvaImages]);
 
 	return (
 		<div
