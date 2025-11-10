@@ -14,6 +14,8 @@ import {
 	Eraser,
 } from "lucide-react";
 
+import Share from "./share";
+
 type Tool = {
 	name: string;
 	icon: React.ElementType;
@@ -117,6 +119,10 @@ export default function Topbar({
 					</button>
 				);
 			})}
+
+			<div className="justify-center w-px h-6 bg-gray-600 m-1.5 mr-0" />
+
+			<Share />
 		</div>
 	);
 }
