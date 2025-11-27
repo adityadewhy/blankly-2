@@ -1,4 +1,3 @@
-import {AnyARecord} from "dns";
 import localforage from "localforage";
 
 localforage.config({
