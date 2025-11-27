@@ -920,6 +920,3 @@ export default function CanvasComponent({
 		</div>
 	);
 }
-
-//todos
-//p-1 image addition
