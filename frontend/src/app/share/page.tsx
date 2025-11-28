@@ -100,7 +100,7 @@ export default function Share() {
 				<button
 					onClick={generateCode}
 					disabled={isGenerating}
-					className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2 rounded-md font-bold transition w-full"
+					className="cursor-pointer disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2 rounded-md font-bold transition w-full"
 				>
 					{isGenerating ? "Generating..." : "Generate Code"}
 				</button>
@@ -177,8 +177,8 @@ export default function Share() {
 						/>
 						<button
 							onClick={handleJoin}
-							disabled={isJoining || joinCode.length < 4}
-							className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded font-bold transition"
+							disabled={isJoining || joinCode.length <= 5 }
+							className="cursor-pointer disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded font-bold transition"
 						>
 							{isJoining ? "..." : "Join"}
 						</button>

@@ -30,5 +30,3 @@ export default function Share() {
 		</button>
 	);
 }
-
-// add loader
