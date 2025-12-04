@@ -15,6 +15,8 @@ import {
 import Konva from "konva";
 import {useCanvasZoom} from "@/hooks/useCanvasZoom";
 import {saveCanvasState, loadCanvasState} from "@/utils/canvasStorage";
+import {io} from "socket.io-client";
+import {useSearchParams} from "next/navigation";
 
 interface UploadedImage {
 	id: string;
@@ -80,6 +82,33 @@ export default function CanvasComponent({
 	const textFontSize = 24;
 	const textColor = "white";
 
+	const searchParams = useSearchParams();
+	const roomId = searchParams.get("room");
+	const socketRef = useRef<any>(null);
+
+	useEffect(() => {
+		if (!roomId) {
+			return;
+		}
+
+		socketRef.current = io("http://localhost:3001");
+		socketRef.current.emit("join_room", roomId);
+
+		socketRef.current.on("draw", (data: any) => {
+			setShapes((prev) => [...prev, data.shape]);
+		});
+
+		return () => {
+			socketRef.current.disconnect();
+		};
+	}, [roomId]);
+
+	const emitShape = (shape: any) => {
+		if (socketRef.current && roomId) {
+			socketRef.current.emit("draw", {roomId, shape});
+		}
+	};
+
 	const eraseItem = (itemid: string) => {
 		setShapes((prev) => {
 			return prev.filter((shape) => {
@@ -137,10 +166,15 @@ export default function CanvasComponent({
 			},
 			onMouseUp: (e: any) => {
 				if (!previewShape) return;
-				setShapes((prev) => [
-					...prev,
-					{...previewShape, id: Date.now().toString(), draggable: false},
-				]);
+
+				const finalShape = {
+					...previewShape,
+					id: Date.now().toString(),
+					draggable: false,
+				};
+				setShapes((prev) => [...prev, finalShape]);
+				emitShape(finalShape);
+
 				setPreviewShape(null);
 			},
 		},
@@ -171,10 +205,14 @@ export default function CanvasComponent({
 			},
 			onMouseUp: (e: any) => {
 				if (!previewShape) return;
-				setShapes((prev) => [
-					...prev,
-					{...previewShape, id: Date.now().toString(), draggable: false},
-				]);
+
+				const finalShape = {
+					...previewShape,
+					id: Date.now().toString(),
+					draggable: false,
+				};
+				setShapes((prev) => [...prev, finalShape]);
+				emitShape(finalShape);
 				setPreviewShape(null);
 			},
 		},
@@ -216,11 +254,14 @@ export default function CanvasComponent({
 			},
 			onMouseUp: (e: any) => {
 				if (!previewShape) return;
-				const {startX, startY, ...finalShape} = previewShape;
-				setShapes((prev) => [
-					...prev,
-					{...finalShape, id: Date.now().toString(), draggable: false},
-				]);
+				const {startX, startY, ...finalShapeData} = previewShape;
+				const finalShape = {
+					...finalShapeData,
+					id: Date.now().toString(),
+					draggable: false,
+				};
+				setShapes((prev) => [...prev, finalShape]);
+				emitShape(finalShape);
 				setPreviewShape(null);
 			},
 		},
@@ -250,10 +291,13 @@ export default function CanvasComponent({
 			},
 			onMouseUp: (e: any) => {
 				if (!previewShape) return;
-				setShapes((prev) => [
-					...prev,
-					{...previewShape, id: Date.now().toString(), draggable: false},
-				]);
+				const finalShape = {
+					...previewShape,
+					id: Date.now().toString(),
+					draggable: false,
+				};
+				setShapes((prev) => [...prev, finalShape]);
+				emitShape(finalShape);
 				setPreviewShape(null);
 			},
 		},
@@ -295,11 +339,17 @@ export default function CanvasComponent({
 			},
 			onMouseUp: () => {
 				if (!previewShape) return;
-				const {startX, startY, ...finalShape} = previewShape;
+				const {startX, startY, ...finalShapeData} = previewShape;
+				const finalShape = {
+					...finalShapeData,
+					id: Date.now().toString(),
+					draggable: false,
+				};
 				setShapes((prev) => [
 					...prev,
-					{...finalShape, id: Date.now().toString()},
+					finalShape,
 				]);
+				emitShape(finalShape)
 				setPreviewShape(null);
 			},
 		},
