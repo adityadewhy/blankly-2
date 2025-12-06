@@ -57,6 +57,9 @@ export default function CanvasComponent({
 		visible: false,
 	});
 	const [konvaImages, setKonvaImages] = useState<any[]>([]);
+	const shapesRef = useRef(shapes);
+	const textRef = useRef(textArray);
+	const imagesRef = useRef(konvaImages);
 
 	const textInputRef = useRef<HTMLTextAreaElement>(null);
 	const stageRef = useRef<Konva.Stage | null>(null);
@@ -84,7 +87,15 @@ export default function CanvasComponent({
 
 	const searchParams = useSearchParams();
 	const roomId = searchParams.get("room");
+	const isHost = searchParams.get("role") === "host";
+
 	const socketRef = useRef<any>(null);
+
+	useEffect(() => {
+		(shapesRef.current = shapes),
+			(imagesRef.current = konvaImages),
+			(textRef.current = textArray);
+	}, [shapes, konvaImages, textArray]);
 
 	useEffect(() => {
 		if (!roomId) {
@@ -94,14 +105,84 @@ export default function CanvasComponent({
 		socketRef.current = io("http://localhost:3001");
 		socketRef.current.emit("join_room", roomId);
 
+		if (!isHost) {
+			socketRef.current.emit("request_canvas_state", {roomId});
+		}
+
+		socketRef.current.on("user_joined", () => {
+			if (!isHost) {
+				socketRef.current.emit("request_canvas_state", {roomId});
+			}
+		});
+
 		socketRef.current.on("draw", (data: any) => {
 			setShapes((prev) => [...prev, data.shape]);
+		});
+
+		socketRef.current.on("request_canvas_state", ({requesterId}: any) => {
+			if (
+				shapesRef.current.length == 0 &&
+				imagesRef.current.length == 0 &&
+				textRef.current.length == 0
+			) {
+				return;
+			}
+
+			const serializableImages = imagesRef.current.map((img: any) => ({
+				id: img.id,
+				name: img.name,
+				src: img.image.src,
+				x: img.x,
+				y: img.y,
+				width: img.width,
+				height: img.height,
+				rotation: img.rotation,
+			}));
+
+			socketRef.current.emit("send_canvas_state", {
+				requesterId,
+				canvasState: {
+					shapes: shapesRef.current,
+					konvaImages: serializableImages,
+					textArray: textRef.current,
+				},
+			});
+		});
+
+		socketRef.current.on("receive_canvas_state", async (state: any) => {
+			if (isHost) {
+				return;
+			}
+
+			if (state.shapes) {
+				setShapes(state.shapes);
+			}
+			if (state.textArray) {
+				setTextArray(state.textArray);
+			}
+			if (state.konvaImages) {
+				const imagePromises = state.konvaImages.map((imgData: any) => {
+					return new Promise((resolve) => {
+						const imgEl = new window.Image();
+						imgEl.src = imgData.src;
+						imgEl.onload = () => {
+							resolve({
+								...imgData,
+								image: imgEl,
+							});
+						};
+						imgEl.onerror = () => resolve(null);
+					});
+				});
+				const loadedImages = (await Promise.all(imagePromises)).filter(Boolean);
+				setKonvaImages(loadedImages as any[]);
+			}
 		});
 
 		return () => {
 			socketRef.current.disconnect();
 		};
-	}, [roomId]);
+	}, [roomId, isHost]);
 
 	const emitShape = (shape: any) => {
 		if (socketRef.current && roomId) {
@@ -345,11 +426,8 @@ export default function CanvasComponent({
 					id: Date.now().toString(),
 					draggable: false,
 				};
-				setShapes((prev) => [
-					...prev,
-					finalShape,
-				]);
-				emitShape(finalShape)
+				setShapes((prev) => [...prev, finalShape]);
+				emitShape(finalShape);
 				setPreviewShape(null);
 			},
 		},

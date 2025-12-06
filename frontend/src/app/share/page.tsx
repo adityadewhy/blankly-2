@@ -68,7 +68,7 @@ export default function Share() {
 
 	const enterMyRoom = () => {
 		if (roomId) {
-			router.push(`/?room=${roomId}`);
+			router.push(`/?room=${roomId}&role=host`);
 		}
 	};
 
@@ -177,7 +177,7 @@ export default function Share() {
 						/>
 						<button
 							onClick={handleJoin}
-							disabled={isJoining || joinCode.length <= 5 }
+							disabled={isJoining || joinCode.length <= 5}
 							className="cursor-pointer disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded font-bold transition"
 						>
 							{isJoining ? "..." : "Join"}
