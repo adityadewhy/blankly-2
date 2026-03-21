@@ -1,5 +1,6 @@
 "use client";
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
+import Image from "next/image";
 
 import {
 	Hand,
@@ -12,9 +13,11 @@ import {
 	Circle,
 	Image as ImagePickerTool,
 	Eraser,
+	LogOut,
 } from "lucide-react";
 
 import Share from "./share";
+import {useSession, signOut} from "next-auth/react";
 
 type Tool = {
 	name: string;
@@ -46,6 +49,9 @@ export default function Topbar({
 	onImageUpload,
 }: TopbarProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [dropdownOpen, setDropdownOpen] = useState(false);
+	const dropdownRef = useRef<HTMLDivElement>(null);
+	const {data: session} = useSession();
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -65,7 +71,7 @@ export default function Topbar({
 
 				// Find the tool with that index
 				const tool = starterTools.find((eachTool, i) =>
-					eachTool.name === "Eraser" ? num === 0 : num === i + 1
+					eachTool.name === "Eraser" ? num === 0 : num === i + 1,
 				);
 
 				if (tool) {
@@ -80,6 +86,20 @@ export default function Topbar({
 
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, []);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (e: MouseEvent) => {
+			if (
+				dropdownRef.current &&
+				!dropdownRef.current.contains(e.target as Node)
+			) {
+				setDropdownOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
 	return (
@@ -123,6 +143,49 @@ export default function Topbar({
 			<div className="justify-center w-px h-6 bg-gray-600 m-1.5 mr-0" />
 
 			<Share />
+
+			{/* Profile avatar + dropdown */}
+			<div className="relative" ref={dropdownRef}>
+				<button
+					onClick={() => setDropdownOpen((prev) => !prev)}
+					className="relative flex p-1.5 rounded-md hover:bg-gray-700 transition-colors"
+					title={session?.user?.name ?? "Account"}
+				>
+					{session?.user?.image ? (
+						<Image
+							src={session.user.image}
+							alt="avatar"
+							width={24}
+							height={24}
+							className="rounded-full object-cover"
+						/>
+					) : (
+						<div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
+							{session?.user?.name?.[0] ?? "?"}
+						</div>
+					)}
+				</button>
+
+				{dropdownOpen && (
+					<div className="absolute right-0 mt-2 w-52 bg-[#2e2e35] rounded-lg shadow-xl border border-gray-700 py-2 z-50">
+						<div className="px-4 py-2 border-b border-gray-700">
+							<p className="text-white text-sm font-medium truncate">
+								{session?.user?.name}
+							</p>
+							<p className="text-gray-400 text-xs truncate">
+								{session?.user?.email}
+							</p>
+						</div>
+						<button
+							onClick={() => signOut()}
+							className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mt-1"
+						>
+							<LogOut size={14} />
+							Sign out
+						</button>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
