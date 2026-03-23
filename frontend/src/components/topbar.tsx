@@ -14,10 +14,14 @@ import {
 	Image as ImagePickerTool,
 	Eraser,
 	LogOut,
+	CloudUpload,
+	CloudCheck,
 } from "lucide-react";
-
-import Share from "./share";
+import RingLoader from "./ringLoader";
 import {useSession, signOut} from "next-auth/react";
+
+import {loadCanvasState} from "@/utils/canvasStorage";
+import Share from "./share";
 
 type Tool = {
 	name: string;
@@ -43,6 +47,8 @@ interface TopbarProps {
 	onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
+type SaveStatus = "idle" | "saving" | "saved" | "error" | "ratelimited";
+
 export default function Topbar({
 	activeTool,
 	setActiveTool,
@@ -52,6 +58,7 @@ export default function Topbar({
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const {data: session} = useSession();
+	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -102,6 +109,69 @@ export default function Topbar({
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
+	const handleCloudSave = async () => {
+		if (saveStatus === "saving" || saveStatus === "ratelimited") return;
+		setSaveStatus("saving");
+
+		try {
+			const state = await loadCanvasState();
+			if (!state) {
+				setSaveStatus("idle");
+				return;
+			}
+
+			const res = await fetch("/api/canvas", {
+				method: "POST",
+				headers: {"Content-Type": "application/json"},
+				body: JSON.stringify({
+					shapes: state.shapes,
+					textArray: state.textArray,
+					timestamp: state.timestamp,
+				}),
+			});
+
+			if (res.status === 429) {
+				setSaveStatus("ratelimited");
+				setTimeout(() => {
+					setSaveStatus("idle");
+				}, 30000);
+				return;
+			}
+
+			if (!res.ok) throw new Error("Save failed");
+
+			setSaveStatus("saved");
+
+			setTimeout(() => {
+				setSaveStatus("idle");
+			}, 3000);
+		} catch (e) {
+			console.error(e);
+			setSaveStatus("error");
+			setTimeout(() => setSaveStatus("idle"), 3000);
+		}
+	};
+
+	const renderCloudIcon = () => {
+		if (saveStatus === "saving") return <RingLoader />;
+		if (saveStatus === "saved")
+			return <CloudCheck size={24} className="text-green-400" />;
+		if (saveStatus === "error")
+			return <CloudUpload size={24} className="text-red-400" />;
+		if (saveStatus === "ratelimited")
+			return <CloudUpload size={24} className="text-yellow-400" />;
+		return <CloudUpload size={24} />;
+	};
+
+	const getCloudTitle = () => {
+		if (saveStatus === "saving") return "Saving...";
+		if (saveStatus === "saved") return "Saved to cloud!";
+		if (saveStatus === "error") return "Save failed, try again";
+		if (saveStatus === "ratelimited")
+			return "Please wait 30s before saving again";
+		return "Save to cloud";
+	};
+
 	return (
 		<div className="flex justify-center bg-[#232329] w-max mx-auto rounded-md mt-3 p-2 pr-4 gap-4">
 			<input
@@ -143,6 +213,15 @@ export default function Topbar({
 			<div className="justify-center w-px h-6 bg-gray-600 m-1.5 mr-0" />
 
 			<Share />
+
+			<button
+				onClick={handleCloudSave}
+				title={getCloudTitle()}
+				disabled={saveStatus === "saving" || saveStatus === "ratelimited"}
+				className="relative flex p-1.5 rounded-md hover:bg-gray-700 text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{renderCloudIcon()}
+			</button>
 
 			{/* Profile avatar + dropdown */}
 			<div className="relative" ref={dropdownRef}>

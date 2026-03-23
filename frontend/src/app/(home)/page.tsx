@@ -1,9 +1,10 @@
 "use client";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 import dynamic from "next/dynamic";
 import Topbar from "@/components/topbar";
 import {useSession, signIn} from "next-auth/react";
+import {saveCanvasState} from "@/utils/canvasStorage";
 
 interface UploadedImage {
 	id: string;
@@ -15,10 +16,71 @@ interface UploadedImage {
 const CanvasComponent = dynamic(() => import("@/components/canvasComponent"), {
 	ssr: false,
 });
+
+type CloudPromptStatus = "checking" | "prompt" | "done";
+
 export default function Home() {
 	const {data: session, status} = useSession();
 	const [activeTool, setActiveTool] = useState("Rectangle");
 	const [images, setImages] = useState<UploadedImage[]>([]);
+
+	const [cloudPrompt, setCloudPrompt] = useState<CloudPromptStatus>("checking");
+	const [cloudTimestamp, setCloudTimestamp] = useState<number | null>(null);
+
+	useEffect(() => {
+		if (status !== "authenticated") return;
+
+		const checkCloud = async () => {
+			try {
+				const res = await fetch("/api/canvas");
+				if (!res.ok) {
+					setCloudPrompt("done");
+					return;
+				}
+
+				const data = await res.json();
+				if (data.found && data.state) {
+					const parsed =
+						typeof data.state === "string"
+							? JSON.parse(data.state)
+							: data.state;
+					setCloudTimestamp(parsed.timestamp ?? null);
+					setCloudPrompt("prompt");
+				} else {
+					setCloudPrompt("done");
+				}
+			} catch {
+				setCloudPrompt("done");
+			}
+		};
+		checkCloud();
+	}, [status]);
+
+	const handleLoadCloud = async () => {
+		try {
+			const res = await fetch("/api/canvas");
+			const data = await res.json();
+
+			if (data.found && data.state) {
+				const parsed =
+					typeof data.state === "string" ? JSON.parse(data.state) : data.state;
+
+				await saveCanvasState({
+					shapes: parsed.shapes || [],
+					textArray: parsed.textArray || [],
+					konvaImages: [],
+					timestamp: parsed.timestamp ?? Date.now(),
+				});
+			}
+		} catch (e) {
+			console.error("Failed to load cloud state", e);
+		}
+		setCloudPrompt("done");
+	};
+
+	const handleKeepLocal = () => {
+		setCloudPrompt("done");
+	};
 
 	const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -42,7 +104,10 @@ export default function Home() {
 		e.target.value = "";
 	};
 
-	if (status === "loading") {
+	if (
+		status === "loading" ||
+		(status === "authenticated" && cloudPrompt === "checking")
+	) {
 		return (
 			<div className="flex items-center justify-center w-full h-screen bg-[#1a1a1f]">
 				<p className="text-gray-400 text-sm">Loading...</p>
@@ -81,6 +146,35 @@ export default function Home() {
 					</svg>
 					Sign in with Google
 				</button>
+			</div>
+		);
+	}
+
+	if (cloudPrompt === "prompt") {
+		const savedDate = cloudTimestamp
+			? new Date(cloudTimestamp).toLocaleString()
+			: "unknown time";
+		return (
+			<div className="flex flex-col items-center justify-center w-full h-screen bg-[#1a1a1f] gap-6">
+				<h1 className="text-white text-2xl font-semibold">Cloud save found</h1>
+				<p className="text-gray-400 text-sm">Last saved on {savedDate}</p>
+				<p className="text-gray-500 text-xs">
+					Note: images are not included in cloud saves
+				</p>
+				<div className="flex gap-3">
+					<button
+						onClick={handleLoadCloud}
+						className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+					>
+						Load from cloud
+					</button>
+					<button
+						onClick={handleKeepLocal}
+						className="px-5 py-2.5 bg-[#2e2e35] text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+					>
+						Keep local version
+					</button>
+				</div>
 			</div>
 		);
 	}

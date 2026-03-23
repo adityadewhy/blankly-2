@@ -7,5 +7,5 @@ export default withAuth({
 });
 
 export const config = {
-	matcher: ["/share", "/api/share"],
+	matcher: ["/share", "/api/share", "/api/canvas"],
 };
