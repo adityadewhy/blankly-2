@@ -59,6 +59,7 @@ export default function Topbar({
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const {data: session} = useSession();
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+	const [cooldownLeft, setCooldownLeft] = useState<number>(0);
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -132,9 +133,17 @@ export default function Topbar({
 
 			if (res.status === 429) {
 				setSaveStatus("ratelimited");
-				setTimeout(() => {
-					setSaveStatus("idle");
-				}, 30000);
+				setCooldownLeft(30);
+				const interval = setInterval(() => {
+					setCooldownLeft((prev) => {
+						if (prev <= 1) {
+							clearInterval(interval);
+							setSaveStatus("idle");
+							return 0;
+						}
+						return prev - 1;
+					});
+				}, 1000);
 				return;
 			}
 
@@ -221,6 +230,11 @@ export default function Topbar({
 				className="relative flex p-1.5 rounded-md hover:bg-gray-700 text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{renderCloudIcon()}
+				{saveStatus === "ratelimited" && (
+					<span className="absolute bottom-0 right-0 text-xs text-yellow-400">
+						{cooldownLeft}
+					</span>
+				)}
 			</button>
 
 			{/* Profile avatar + dropdown */}
